@@ -1,0 +1,59 @@
+# BotFather
+
+first go to telegram open BotFather and type /newbot
+then input name and botname
+so we will get token
+
+# install
+
+python -m pip install python-telegram-bot
+
+#then for run it 
+
+go to terminal type python .\[namefile.py]
+
+$env:TELEGRAM_BOT_TOKEN = "8619415870:AAGo0ze8DrEyOVsb2RDJGOVVdRWd2h1MStM"
+python .\main.py
+
+
+
+import os
+import json
+from urllib.request import urlopen
+from telegram import Update
+from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text(
+        "Hello! I am your bot. Send /joke for a joke or type a message and I will echo it back."
+    )
+
+
+async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_message = update.message.text
+    await update.message.reply_text(f"You said: {user_message}")
+
+
+async def joke(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    with urlopen("https://official-joke-api.appspot.com/random_joke", timeout=10) as response:
+        joke_data = json.loads(response.read().decode("utf-8"))
+    await update.message.reply_text(f"{joke_data['setup']}... {joke_data['punchline']}")
+
+
+def main() -> None:
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    if not token:
+        raise RuntimeError("Set the TELEGRAM_BOT_TOKEN environment variable before running the bot.")
+
+    application = Application.builder().token(token).build()
+
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("joke", joke))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+
+    application.run_polling()
+
+
+if __name__ == "__main__":
+    main()
