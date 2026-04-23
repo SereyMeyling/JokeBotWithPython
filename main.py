@@ -1,11 +1,11 @@
 import os
 import json
+import asyncio
 from urllib.request import urlopen
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 from flask import Flask, request
 
-# ===== Telegram Handlers =====
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
@@ -23,6 +23,8 @@ async def joke(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 app = Flask(__name__)
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
 
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -42,10 +44,9 @@ application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
 
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
-    import asyncio
     data = request.get_json(force=True)
     update = Update.de_json(data, application.bot)
-    asyncio.run(application.process_update(update))
+    loop.run_until_complete(application.process_update(update))
     return "ok"
 
 
@@ -57,14 +58,12 @@ def home():
 
 if __name__ == "__main__":
     if USE_WEBHOOK:
-        import asyncio
-
         async def setup():
             await application.initialize()
             await application.start()
             await application.bot.set_webhook(WEBHOOK_URL)
 
-        asyncio.run(setup())
+        loop.run_until_complete(setup())
 
         port = int(os.environ.get("PORT", 10000))
         app.run(host="0.0.0.0", port=port)
